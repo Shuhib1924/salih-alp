@@ -25,17 +25,25 @@
     </head>
 
     <body>
-        <!--  -->
-        <div x-data="abc()">
-            <h1
-                class="w-fit cursor-pointer t1"
-                @click="show = !show"
-            >toggle</h1>
-            <div
-                x-show="show"
-                x-cloak
-                class="bg-blue-500 size-20"
-            ></div>
+        <div class="mx-auto my-5 w-3/4">
+            <h1 class="text-4xl text-center text-slate-600">Alpine Course 1.0</h1>
+            <hr class="my-5">
+            <!-- $ x-data -->
+            <!--  wichtig, hier kann viele fehler entstehen, z.B. wenn etwas undefined in der console ist -->
+            <!--  you need to formatting the indents yourself -->
+            <h2 class="text-2xl text-blue-800">x-data & x-text & x-html</h2>
+            <div x-data="{
+                show: false,
+                name: 'salih',
+                prerender: '<b>hello</b>'
+            }">
+                <!-- capitalize -->
+                <p x-text="`my name is ${name.charAt(0).toUpperCase() + name.slice(1)}`"></p>
+                <!-- bool -->
+                <p x-text="`the bool is: ${show}`"></p>
+                <!-- html -->
+                <p x-html="prerender"></p>
+            </div>
         </div>
     </body>
     <script>
