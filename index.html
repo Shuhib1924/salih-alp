@@ -63,6 +63,9 @@
                         modifiedList.push(this.list1[i].toUpperCase());
                     }
                     return modifiedList;
+                },
+                get getArray(){
+                    return Array.from(this.list1, str => str.charAt(0).toUpperCase() + str.slice(1));
                 }
             }">
                 <!-- bool -->
@@ -90,6 +93,10 @@
                 <p x-text="` for loop: ${getForLoop}`"></p>
                 <template x-for="l in getReduce">
                     <p x-text="`capitalized by forloop: ${l}`"></p>
+                </template>
+                <p x-text="`array: ${getArray}`"></p>
+                <template x-for="l in getArray">
+                    <p x-text="`capitalized by Array: ${l}`"></p>
                 </template>
             </div>
         </div>
