@@ -35,14 +35,62 @@
             <div x-data="{
                 show: false,
                 name: 'salih',
-                prerender: '<b>hello</b>'
+                get capitalized(){
+                    return this.name.charAt(0).toUpperCase() + this.name.slice(1);
+                },
+                prerender: '<b>hello</b>',
+                list1: ['a', 'b', 'c'],
+                get getMap(){
+                    return this.list1.map(str => str.toUpperCase());
+                },
+                get getEach(){
+                    const modifiedList = []
+                    this.list1.forEach(str => {modifiedList.push(str.toUpperCase())});
+                    return modifiedList
+                },
+                get getReduce(){
+                    return this.list1.reduce(
+                        (i, j) => {
+                            i.push(j.toUpperCase());
+                            return i
+                            },
+                        []
+                    )
+                },
+                get getForLoop(){
+                    const modifiedList = [];
+                    for (let i = 0; i < this.list1.length; i++) {
+                        modifiedList.push(this.list1[i].toUpperCase());
+                    }
+                    return modifiedList;
+                }
             }">
-                <!-- capitalize -->
-                <p x-text="`my name is ${name.charAt(0).toUpperCase() + name.slice(1)}`"></p>
                 <!-- bool -->
-                <p x-text="`the bool is: ${show}`"></p>
+                <p x-text="`the bool-value is: ${show}`"></p>
+                <!-- capitalize -->
+                <p x-text="`capitalize by x-text ${name.charAt(0).toUpperCase() + name.slice(1)}`"></p>
+                <p x-text="`capitalize by function ${capitalized}`"></p>
                 <!-- html -->
-                <p x-html="prerender"></p>
+                <p x-html="`prerendered text: ${prerender}`"></p>
+                <template x-for="l in list1">
+                    <p x-text="`capitalized by x-for: ${l.toUpperCase()}`"></p>
+                </template>
+                <p x-text="`map: ${getMap}`"></p>
+                <template x-for="l in getMap">
+                    <p x-text="`capitalized by map: ${l}`"></p>
+                </template>
+                <p x-text="` for each: ${getEach}`"></p>
+                <template x-for="l in getEach">
+                    <p x-text="`capitalized by forEach: ${l}`"></p>
+                </template>
+                <p x-text="` reduce: ${getReduce}`"></p>
+                <template x-for="l in getReduce">
+                    <p x-text="`capitalized by reduce: ${l}`"></p>
+                </template>
+                <p x-text="` for loop: ${getForLoop}`"></p>
+                <template x-for="l in getReduce">
+                    <p x-text="`capitalized by forloop: ${l}`"></p>
+                </template>
             </div>
         </div>
     </body>
