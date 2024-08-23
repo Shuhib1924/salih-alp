@@ -317,23 +317,3 @@
     </script>
 
 </html>
-
-
-<div
-    x-data="{ open: false }"
-    class="relative"
->
-    <button
-        @click="open = !open"
-        @click.away="open = false"
-        x-text="open ? 'close' : 'open'"
-        class="bg-blue-500 hover:bg-blue-400 py-2 rounded w-24 font-bold text-white focus:outline-none"
-    >
-    </button>
-    <div
-        class="absolute flex justify-center items-center bg-white shadow-lg mt-3 rounded-lg w-64 h-24 text-xl"
-        x-show.transition="open"
-    >
-        Hey there!
-    </div>
-</div>
