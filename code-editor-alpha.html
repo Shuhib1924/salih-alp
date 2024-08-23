@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
+        <script
+            src="https://unpkg.com/alpinejs"
+            defer
+        ></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <title>Document</title>
+    </head>
+
+    <body>
+        <div class="bg-white p-6 md:p-32 min-h-screen">
+
+
+            <div
+                x-data="{
+                    editorState: false,
+                    componentHTML: null,
+                    snippet: document.createElement('pre'),
+                    edited: false,
+                    copied: false,
+                    setup() {
+                        // TODO: Doing this here is too late as Alpine already has set it up
+                        this.componentHTML = this.$el.querySelector('[x-data]').outerHTML
+                        this.buildSnippet()
+                        this.$refs.demo.innerHTML = this.componentHTML
+                        this.$el.style.setProperty('display', 'block')
+                    },
+                    buildSnippet() {
+                        let html = this.componentHTML
+                        let tokens = lolight.tok(html)
+
+                        tokens = tokens.map((token, index) => {
+
+                            // If it's a return or new line
+                            if (/\r|\n/.exec(token[1])) {
+
+                                // The return should be first, ie strip leading spaces
+                                token[1] = token[1].replace(/\s+[\n|\r]/, '')
+
+                                // Check the length of the \r + tabs
+                                const length = (/\r|\n/.exec(token[1]).input.length)
+
+                                // Only set the spaces the first time
+                                if (typeof spacesOffset === 'undefined') {
+                                    // The first indent should always be 1 space,
+                                    // so with the \r that would mean a length of 2
+                                    spacesOffset = 2 - length
+                                }
+                                token[1] = token[1].slice(0, (spacesOffset ? spacesOffset : length))
+
+                                // Replace tabs with 4 spaces
+                                token[1] = token[1].replace(/\t/g, Array.from({
+                                    length: 4,
+                                }).map(() => ' ').join(''))
+
+                                return token[1]
+                            }
+                            // TODO: Might be nicer to put each directive on it's own line
+                            // Perhaps use the spaceOffset from above...
+                            // if (token[1] === '@') return '\n\t@'
+                            // if (token[1] === 'x') return '\n\tx'
+                            // if (token[0] === 'key') {
+                            // 	if (tokens[index + 1] && tokens[index - 1][0] == 'pct') {
+                            // 		return token[1]
+                            // 	}
+                            // 	return '\n\t' + token[1]
+                            // }
+                            return token[1].replace(/[\u00A0-\u9999<>\&]/gim, i => '&#' + i.charCodeAt(0) + ';')
+                        }).join('')
+                        this.snippet.innerHTML = tokens
+                        lolight.el(this.snippet) // https://larsjung.de/lolight/
+                        this.$refs.snippet.innerHTML = this.snippet.innerHTML
+                    },
+                    selectSnippet(event) {
+                        const range = document.createRange()
+                        range.selectNode(event.target)
+                        window.getSelection().removeAllRanges()
+                        window.getSelection().addRange(range)
+                        document.execCommand('copy')
+                    },
+                    copySnippet(event) {
+                        if (this.copied) return
+                        window.getSelection().removeAllRanges()
+                        event.clipboardData.setData('text/plain', this.$refs.snippet.innerText)
+                        this.copied = true
+                        setTimeout(() => {
+                            this.copied = false
+                        }, 2000)
+                    },
+                    resetAndRefresh() {
+                        this.edited = false
+                        this.buildSnippet()
+                        this.$refs.demo.innerHTML = this.componentHTML
+                    }
+                }"
+                x-init="setup"
+                class="relative mx-auto max-w-3xl"
+                style="display:none;"
+            >
+
+
+                <div class="shadow">
+                    <div class="flex justify-between bg-indigo-500 p-2 leading-none">
+                        <div class="font-extrabold text-white">Speed.Codes</div>
+                        <button
+                            x-show.transition.opacity="edited"
+                            class="px-2 text-white hover:underline focus:outline-none"
+                            @click="resetAndRefresh()"
+                            x-cloak
+                        >reset</button>
+                    </div>
+                    <div
+                        x-ref="demo"
+                        class="relative flex justify-center items-center"
+                        style="min-height:300px;background:#d2d8e3"
+                    >
+                        <pre>
+        				<div x-data="{ open: false }" class="relative">
+        					<button
+        						@click="open = !open"
+        						@click.away="open = false"
+        						x-text="open ? 'close' : 'open'"
+        						class="bg-blue-500 hover:bg-blue-400 py-2 rounded w-24 font-bold text-white focus:outline-none">
+        					</button>
+        					<div
+        						class="absolute flex justify-center items-center bg-white shadow-lg mt-3 rounded-lg w-64 h-24 text-xl"
+        						x-show.transition="open">
+        						Hey there!
+        					</div>
+        				</div>
+        			</pre>
+                    </div>
+                </div>
+
+
+                <div class="shadow">
+                    <div class="flex justify-between bg-gray-700 mt-6 p-2 leading-none">
+                        <div class="font-bold text-white">Code Editor</div>
+                        <div class="divide-x-2 divide-white">
+                            <button
+                                class="px-2 text-white hover:underline focus:outline-none"
+                                @click.prevent="selectSnippet($event)"
+                                @copy.document.prevent="copySnippet($event)"
+                            >copy</button>
+                            <button
+                                @click="editorState = !editorState"
+                                class="text-white"
+                                :class="{'rotate-90' : editorState}"
+                            >&#10095;</button>
+                        </div>
+                    </div>
+                    <pre
+                        x-show="editorState"
+                        x-ref="snippet"
+                        contenteditable="true"
+                        @input="edited = true"
+                        @input.debounce.500="$refs.demo.innerHTML = $refs.snippet.innerText"
+                        class="relative bg-gray-100 focus:bg-white focus:outline-none py-8 p-4 font-mono overflow-scroll"
+                        tabindex="0"
+                    >
+        		</pre>
+                </div>
+                <span
+                    class="right-0 bottom-0 absolute mr-2 mb-2 text-sm italic"
+                    x-show.transition.opacity.duration.350ms="copied"
+                    x-cloak
+                >Copied!</span>
+            </div>
+
+
+        </div>
+    </body>
+    <script>
+        (function (root, factory) {
+            if (typeof exports === 'object' && typeof module === 'object') {
+                module.exports = factory(); // CommonJS
+            } else if (typeof define === 'function' && define.amd) { // AMD
+                define([], factory);
+            } else {
+                root.lolight = factory(); // Global variable
+            }
+        }(this, function () {
+            var SELECTOR = '.lolight';
+            var CLS_PREFIX = 'll-';
+            var STYLE = '_nam#2196f3}_num#ec407a}_str#43a047}_rex#ef6c00}_pct#666}_key#555;font-weight:bold}_com#aaa;font-style:italic}'.replace(/_/g, '.' + CLS_PREFIX).replace(/#/g, '{color:#');
+
+            var KEYWORD_RE = /^(a(bstract|lias|nd|rguments|rray|s(m|sert)?|uto)|b(ase|egin|ool(ean)?|reak|yte)|c(ase|atch|har|hecked|lass|lone|ompl|onst|ontinue)|de(bugger|cimal|clare|f(ault|er)?|init|l(egate|ete)?)|do|double|e(cho|ls?if|lse(if)?|nd|nsure|num|vent|x(cept|ec|p(licit|ort)|te(nds|nsion|rn)))|f(allthrough|alse|inal(ly)?|ixed|loat|or(each)?|riend|rom|unc(tion)?)|global|goto|guard|i(f|mp(lements|licit|ort)|n(it|clude(_once)?|line|out|stanceof|t(erface|ernal)?)?|s)|l(ambda|et|ock|ong)|m(odule|utable)|NaN|n(amespace|ative|ext|ew|il|ot|ull)|o(bject|perator|r|ut|verride)|p(ackage|arams|rivate|rotected|rotocol|ublic)|r(aise|e(adonly|do|f|gister|peat|quire(_once)?|scue|strict|try|turn))|s(byte|ealed|elf|hort|igned|izeof|tatic|tring|truct|ubscript|uper|ynchronized|witch)|t(emplate|hen|his|hrows?|ransient|rue|ry|ype(alias|def|id|name|of))|u(n(checked|def(ined)?|ion|less|signed|til)|se|sing)|v(ar|irtual|oid|olatile)|w(char_t|hen|here|hile|ith)|xor|yield)$/;
+
+            var TOKEN_TYPES = {
+                COM: 'com',
+                KEY: 'key',
+                NAM: 'nam',
+                NUM: 'num',
+                PCT: 'pct',
+                REX: 'rex',
+                SPC: 'spc',
+                STR: 'str',
+                UNK: 'unk'
+            };
+
+            var TOKEN_RES = [
+                [TOKEN_TYPES.NUM, /#([0-9a-f]{6}|[0-9a-f]{3})\b/],
+                [TOKEN_TYPES.COM, /(\/\/|#).*?(?=\n|$)/],
+                [TOKEN_TYPES.COM, /\/\*[\s\S]*?\*\//],
+                [TOKEN_TYPES.COM, /<!--[\s\S]*?-->/],
+                [TOKEN_TYPES.REX, /\/(\\\/|[^\n])*?\//],
+                [TOKEN_TYPES.STR, /(['"`])(\\\1|[\s\S])*?\1/],
+                [TOKEN_TYPES.NUM, /[+-]?([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)([eE][+-]?[0-9]+)?/],
+                [TOKEN_TYPES.PCT, /[\\.,:;+\-*\/=<>()[\]{}|?!&@~]/],
+                [TOKEN_TYPES.SPC, /\s+/],
+                [TOKEN_TYPES.NAM, /[\w$]+/],
+                [TOKEN_TYPES.UNK, /./]
+                ];
+
+            var tokenize = function (text) {
+                if (typeof text !== 'string') {
+                    throw new Error('tok: no string');
+                }
+
+                var tokens = [];
+                var len = TOKEN_RES.length;
+                var prefer_div_over_re = false;
+
+                while (text) {
+                    for (var i = 0; i < len; i += 1) {
+                        var m = TOKEN_RES[i][1].exec(text);
+                        if (!m || m.index !== 0) {
+                            continue;
+                        }
+
+                        var cls = TOKEN_RES[i][0];
+                        if (cls === TOKEN_TYPES.REX && prefer_div_over_re) {
+                            continue;
+                        }
+
+                        var tok = m[0];
+
+                        if (cls === TOKEN_TYPES.NAM && KEYWORD_RE.test(tok)) {
+                            cls = TOKEN_TYPES.KEY;
+                        }
+                        if (cls === TOKEN_TYPES.SPC) {
+                            if (tok.indexOf('\n') >= 0) {
+                                prefer_div_over_re = false;
+                            }
+                        } else {
+                            prefer_div_over_re = cls === TOKEN_TYPES.NUM || cls === TOKEN_TYPES.NAM;
+                        }
+
+                        text = text.slice(tok.length);
+                        tokens.push([cls, tok]);
+                        break;
+                    }
+                }
+
+                return tokens;
+            };
+
+            var with_doc = function (fail, fn) {
+                if (typeof document !== 'undefined') {
+                    fn(document); // Ensure document is available
+                } else if (fail) {
+                    throw new Error('no doc');
+                }
+            };
+
+            var highlight_el = function (el) {
+                with_doc(true, function (doc) {
+                    var tokens = tokenize(el.textContent);
+                    el.innerHTML = ''; // Clear existing content
+                    tokens.forEach(function (token) {
+                        var tok_el = doc.createElement('span');
+                        tok_el.className = CLS_PREFIX + token[0];
+                        tok_el.textContent = token[1];
+                        el.appendChild(tok_el);
+                    });
+                });
+            };
+
+            var lolight = function (sel) {
+                with_doc(true, function (doc) {
+                    [].forEach.call(doc.querySelectorAll(sel || SELECTOR), function (el) {
+                        highlight_el(el);
+                    });
+                });
+            };
+
+            with_doc(false, function (doc) {
+                // Inject styles into the document
+                var head = doc.querySelector('head');
+                var style = doc.createElement('style');
+                style.textContent = STYLE;
+                head.insertBefore(style, head.firstChild);
+
+                // Auto highlight on document load
+                if ((/^(i|c|loade)/).test(doc.readyState)) {
+                    lolight();
+                } else {
+                    doc.addEventListener('DOMContentLoaded', function () {
+                        lolight();
+                    });
+                }
+            });
+
+            lolight.tok = tokenize; // Expose tokenize function
+            lolight.el = highlight_el; // Expose highlight function
+            return lolight; // Return the main function
+        }));
+
+    </script>
+
+</html>
+
+
+<div
+    x-data="{ open: false }"
+    class="relative"
+>
+    <button
+        @click="open = !open"
+        @click.away="open = false"
+        x-text="open ? 'close' : 'open'"
+        class="bg-blue-500 hover:bg-blue-400 py-2 rounded w-24 font-bold text-white focus:outline-none"
+    >
+    </button>
+    <div
+        class="absolute flex justify-center items-center bg-white shadow-lg mt-3 rounded-lg w-64 h-24 text-xl"
+        x-show.transition="open"
+    >
+        Hey there!
+    </div>
+</div>
